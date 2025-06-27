@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Player med Live Transcription</title>
+    
+    <!-- Video.js CSS -->
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+        }
+        
+        select, input, button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.connecting {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .audio-container {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .video-js {
+            margin: 0 auto;
+        }
+        
+        .transcription-container {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .transcription-text {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .transcription-stream {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #333;
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            border: 2px solid #e9ecef;
+            min-height: 100px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .transcription-segment {
+            margin-bottom: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .timestamp {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .file-upload {
+            border: 2px dashed #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+            background: #fafafa;
+        }
+        
+        .file-upload.dragover {
+            border-color: #007bff;
+            background: #e3f2fd;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-label {
+            cursor: pointer;
+            color: #007bff;
+            font-weight: bold;
+        }
+        
+        .upload-label:hover {
+            color: #0056b3;
+        }
+        
+        .file-info {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #007bff;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .view-toggle {
+            margin-bottom: 10px;
+        }
+        
+        .view-toggle button {
+            background: #6c757d;
+            margin-right: 5px;
+        }
+        
+        .view-toggle button.active {
+            background: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Audio Player med Live Transcription</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="serverUrl">Server URL:</label>
+                <input type="text" id="serverUrl" value="ws://localhost:9000/ws/live-transcribe" style="width: 300px;">
+            </div>
+            
+            <div class="control-group">
+                <label for="language">Språk:</label>
+                <select id="language">
+                    <option value="">Auto-detect</option>
+                    <option value="no">Norsk</option>
+                    <option value="en">Engelsk</option>
+                    <option value="sv">Svensk</option>
+                    <option value="da">Dansk</option>
+                    <option value="de">Tysk</option>
+                    <option value="fr">Fransk</option>
+                    <option value="es">Spansk</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <button id="startBtn" onclick="startTranscription()" disabled>🎵 Start Transcription</button>
+                <button id="stopBtn" onclick="stopTranscription()" disabled>⏹️ Stop</button>
+                <button id="clearBtn" onclick="clearTranscription()">🗑️ Clear</button>
+                <button onclick="testWebSocket()">🧪 Test WebSocket</button>
+            </div>
+            
+            <div id="status" class="status disconnected">
+                🔴 Ikke tilkoblet
+            </div>
+        </div>
+        
+        <div class="file-upload" id="fileUpload" onclick="document.getElementById('audioFile').click()">
+            <input type="file" id="audioFile" class="file-input" accept="audio/*" onchange="handleFileSelect(event)">
+            <div class="upload-label">📁 Klikk for å velge lydfil eller dra fil hit</div>
+            <div class="file-info" id="fileInfo">Støtter MP3, WAV, M4A, FLAC og andre formater</div>
+        </div>
+        
+        <div class="audio-container">
+            <audio
+                id="myAudio"
+                class="video-js vjs-default-skin"
+                controls
+                preload="auto"
+                style="width: 100%; max-width: 600px;"
+            >
+                Din nettleser støtter ikke audio-elementet.
+            </audio>
+        </div>
+        
+        <div class="progress-bar" id="progressBar" style="display: none;">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        
+        <div class="transcription-container">
+            <h3>📝 Live Transcription</h3>
+            
+            <div class="view-toggle">
+                <button onclick="switchView('stream')" id="streamBtn" class="active">📝 Kontinuerlig tekst</button>
+                <button onclick="switchView('segments')" id="segmentsBtn">📋 Segmenter</button>
+            </div>
+            
+            <div id="transcriptionStream" class="transcription-stream">
+                Last opp en lydfil og klikk "Start Transcription" for å begynne...
+            </div>
+            
+            <div id="transcriptionText" class="transcription-text" style="display: none;">
+                Last opp en lydfil og klikk "Start Transcription" for å begynne...
+            </div>
+        </div>
+    </div>
+
+    <!-- Video.js JavaScript -->
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+    
+    <script>
+        let player;
+        let websocket;
+        let isPlaying = false;
+        let isTranscribing = false;
+        let transcriptionSegments = [];
+        let transcriptionStream = "";
+        let startTime = 0;
+        let currentView = 'stream';
+        
+        // Initialiser Video.js player
+        document.addEventListener('DOMContentLoaded', function() {
+            player = videojs('myAudio');
+            
+            // Lytt på play/pause events
+            player.on('play', function() {
+                if (isTranscribing) {
+                    startTime = Date.now();
+                }
+            });
+            
+            player.on('pause', function() {
+                // Pause transcription hvis nødvendig
+            });
+            
+            player.on('ended', function() {
+                stopTranscription();
+            });
+        });
+        
+        function switchView(view) {
+            currentView = view;
+            
+            if (view === 'stream') {
+                document.getElementById('transcriptionStream').style.display = 'block';
+                document.getElementById('transcriptionText').style.display = 'none';
+                document.getElementById('streamBtn').classList.add('active');
+                document.getElementById('segmentsBtn').classList.remove('active');
+            } else {
+                document.getElementById('transcriptionStream').style.display = 'none';
+                document.getElementById('transcriptionText').style.display = 'block';
+                document.getElementById('streamBtn').classList.remove('active');
+                document.getElementById('segmentsBtn').classList.add('active');
+            }
+        }
+        
+        // Drag and drop støtte
+        const fileUpload = document.getElementById('fileUpload');
+        
+        fileUpload.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            fileUpload.classList.add('dragover');
+        });
+        
+        fileUpload.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            fileUpload.classList.remove('dragover');
+        });
+        
+        fileUpload.addEventListener('drop', function(e) {
+            e.preventDefault();
+            fileUpload.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+        
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+        
+        function handleFile(file) {
+            const fileInfo = document.getElementById('fileInfo');
+            fileInfo.textContent = `Valgt fil: ${file.name} (${formatFileSize(file.size)})`;
+            
+            // Opprett URL for filen
+            const url = URL.createObjectURL(file);
+            player.src({ src: url, type: file.type });
+            
+            // Aktiver start-knappen
+            document.getElementById('startBtn').disabled = false;
+            
+            // Vis progress bar
+            document.getElementById('progressBar').style.display = 'block';
+            updateProgress(0);
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function updateProgress(percent) {
+            document.getElementById('progressFill').style.width = percent + '%';
+        }
+        
+        function updateStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+        
+        function updateButtons(transcribing) {
+            document.getElementById('startBtn').disabled = transcribing;
+            document.getElementById('stopBtn').disabled = !transcribing;
+        }
+        
+        function addTranscriptionSegment(text, timestamp) {
+            console.log('Adding transcription segment:', text, timestamp);
+            
+            // Legg til i kontinuerlig strøm
+            transcriptionStream += text + " ";
+            const streamElement = document.getElementById('transcriptionStream');
+            if (streamElement) {
+                streamElement.textContent = transcriptionStream;
+                console.log('Updated transcription stream:', transcriptionStream);
+                
+                // Scroll til bunnen
+                streamElement.scrollTop = streamElement.scrollHeight;
+            } else {
+                console.error('transcriptionStream element not found');
+            }
+            
+            // Legg til i segmenter (for segment-visning)
+            const container = document.getElementById('transcriptionText');
+            if (container) {
+                const segment = document.createElement('div');
+                segment.className = 'transcription-segment';
+                
+                const timeEl = document.createElement('div');
+                timeEl.className = 'timestamp';
+                timeEl.textContent = timestamp;
+                
+                const textEl = document.createElement('div');
+                textEl.textContent = text;
+                
+                segment.appendChild(timeEl);
+                segment.appendChild(textEl);
+                container.appendChild(segment);
+                
+                // Scroll til bunnen
+                container.scrollTop = container.scrollHeight;
+                console.log('Added segment to container');
+            } else {
+                console.error('transcriptionText element not found');
+            }
+            
+            // Lagre segment
+            transcriptionSegments.push({ text, timestamp });
+            console.log('Total segments:', transcriptionSegments.length);
+        }
+        
+        function clearTranscription() {
+            transcriptionStream = "";
+            transcriptionSegments = [];
+            document.getElementById('transcriptionStream').textContent = 
+                'Last opp en lydfil og klikk "Start Transcription" for å begynne...';
+            document.getElementById('transcriptionText').innerHTML = 
+                'Last opp en lydfil og klikk "Start Transcription" for å begynne...';
+        }
+        
+        async function startTranscription() {
+            try {
+                updateStatus('🔄 Kobler til server...', 'connecting');
+                
+                // Hent konfigurasjon
+                const serverUrl = document.getElementById('serverUrl').value;
+                const language = document.getElementById('language').value;
+                
+                // Bygg WebSocket URL med språk-parameter
+                let wsUrl = serverUrl;
+                if (language) {
+                    wsUrl += `?language=${language}`;
+                }
+                
+                console.log('Connecting to WebSocket:', wsUrl);
+                
+                // Opprett WebSocket-tilkobling
+                websocket = new WebSocket(wsUrl);
+                
+                websocket.onopen = function() {
+                    console.log('WebSocket connected successfully');
+                    updateStatus('🟢 Tilkoblet - starter transcription...', 'connected');
+                    
+                    // Send test data umiddelbart
+                    const testData = new Int16Array(16000);
+                    for (let i = 0; i < 16000; i++) {
+                        testData[i] = Math.sin(i * 0.1) * 16384; // Enkel tone
+                    }
+                    websocket.send(testData.buffer);
+                    console.log('Sent initial test data');
+                    
+                    startAudioProcessing();
+                };
+                
+                websocket.onmessage = function(event) {
+                    console.log('Received transcription:', event.data);
+                    const transcription = event.data;
+                    if (transcription && transcription !== "[ERROR] Transcription failed.") {
+                        const timestamp = new Date().toLocaleTimeString();
+                        addTranscriptionSegment(transcription.trim(), timestamp);
+                    } else {
+                        console.error('Transcription error:', transcription);
+                    }
+                };
+                
+                websocket.onclose = function(event) {
+                    console.log('WebSocket closed:', event.code, event.reason);
+                    updateStatus('🔴 Frakoblet', 'disconnected');
+                    stopAudioProcessing();
+                    updateButtons(false);
+                };
+                
+                websocket.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                    updateStatus('❌ WebSocket-feil: ' + error.message, 'disconnected');
+                    stopAudioProcessing();
+                    updateButtons(false);
+                };
+                
+            } catch (error) {
+                console.error('Error starting transcription:', error);
+                updateStatus('❌ Feil: ' + error.message, 'disconnected');
+            }
+        }
+        
+        function stopTranscription() {
+            if (websocket) {
+                websocket.close();
+            }
+            stopAudioProcessing();
+            updateStatus('🔴 Stoppet', 'disconnected');
+            updateButtons(false);
+        }
+        
+        async function startAudioProcessing() {
+            try {
+                console.log('Starting real audio processing...');
+                
+                // Få media element fra Video.js player
+                const mediaElement = player.tech().el();
+                console.log('Media element:', mediaElement);
+                
+                // Opprett AudioContext for å lese audio data
+                const audioContext = new AudioContext({ sampleRate: 16000 });
+                console.log('AudioContext created with sample rate:', audioContext.sampleRate);
+                
+                // Koble til audio element
+                const audioSource = audioContext.createMediaElementSource(mediaElement);
+                console.log('Audio source created');
+                
+                // Opprett processor for å fange audio data
+                const processor = audioContext.createScriptProcessor(8192, 1, 1); // Økt buffer størrelse
+                console.log('Script processor created');
+                
+                let chunkCount = 0;
+                let audioBuffer = new Int16Array(0);
+                
+                processor.onaudioprocess = function(event) {
+                    if (websocket && websocket.readyState === WebSocket.OPEN && !player.paused()) {
+                        const inputData = event.inputBuffer.getChannelData(0);
+                        
+                        // Enkel støyreduksjon - fjern svak lyd
+                        const threshold = 0.01;
+                        const processedData = new Float32Array(inputData.length);
+                        for (let i = 0; i < inputData.length; i++) {
+                            if (Math.abs(inputData[i]) < threshold) {
+                                processedData[i] = 0;
+                            } else {
+                                processedData[i] = inputData[i];
+                            }
+                        }
+                        
+                        // Konverter til 16-bit PCM
+                        const pcmData = new Int16Array(processedData.length);
+                        for (let i = 0; i < processedData.length; i++) {
+                            pcmData[i] = Math.max(-32768, Math.min(32767, processedData[i] * 32768));
+                        }
+                        
+                        // Legg til i buffer
+                        const newBuffer = new Int16Array(audioBuffer.length + pcmData.length);
+                        newBuffer.set(audioBuffer);
+                        newBuffer.set(pcmData, audioBuffer.length);
+                        audioBuffer = newBuffer;
+                        
+                        // Send hvis vi har nok data (ca. 2 sekunder)
+                        if (audioBuffer.length >= 32000) {
+                            try {
+                                websocket.send(audioBuffer.buffer);
+                                chunkCount++;
+                                console.log(`Sent real audio chunk ${chunkCount}, size: ${audioBuffer.buffer.byteLength} bytes`);
+                                
+                                // Reset buffer
+                                audioBuffer = new Int16Array(0);
+                            } catch (error) {
+                                console.error('Error sending audio data:', error);
+                            }
+                        }
+                        
+                        // Oppdater progress
+                        const currentTime = player.currentTime();
+                        const duration = player.duration();
+                        if (duration > 0) {
+                            const progress = (currentTime / duration) * 100;
+                            updateProgress(progress);
+                        }
+                    }
+                };
+                
+                // Koble audio source til processor og destination
+                audioSource.connect(processor);
+                audioSource.connect(audioContext.destination);
+                processor.connect(audioContext.destination);
+                
+                console.log('Real audio processing started');
+                
+                isTranscribing = true;
+                updateButtons(true);
+                updateStatus('🟢 Live transcription aktiv - spill av lydfilen!', 'connected');
+                
+            } catch (error) {
+                console.error('Error in audio processing:', error);
+                updateStatus('❌ Audio-feil: ' + error.message, 'disconnected');
+            }
+        }
+        
+        function stopAudioProcessing() {
+            isTranscribing = false;
+            document.getElementById('progressBar').style.display = 'none';
+        }
+        
+        function testWebSocket() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            console.log('Testing WebSocket connection to:', serverUrl);
+            
+            const testWs = new WebSocket(serverUrl);
+            
+            testWs.onopen = function() {
+                console.log('✅ Test WebSocket connected successfully');
+                updateStatus('✅ Test WebSocket connected', 'connected');
+                
+                // Send a test message
+                const testData = new Int16Array(1024).buffer; // Empty audio data
+                testWs.send(testData);
+                console.log('Sent test audio data');
+                
+                setTimeout(() => {
+                    testWs.close();
+                    console.log('Test WebSocket closed');
+                }, 2000);
+            };
+            
+            testWs.onmessage = function(event) {
+                console.log('✅ Received test response:', event.data);
+            };
+            
+            testWs.onerror = function(error) {
+                console.error('❌ Test WebSocket error:', error);
+                updateStatus('❌ Test WebSocket failed', 'disconnected');
+            };
+            
+            testWs.onclose = function() {
+                console.log('Test WebSocket closed');
+            };
+        }
+        
+        // Cleanup ved page unload
+        window.addEventListener('beforeunload', function() {
+            if (websocket) {
+                websocket.close();
+            }
+            if (player) {
+                player.dispose();
+            }
+        });
+    </script>
+</body>
+</html> 

@@ -40,6 +40,64 @@ models. We observed that the difference becomes less significant for the `small.
 
 The distilled models offer improved inference speed while maintaining good accuracy.
 
+### NbAiLab Whisper Models
+
+When using `ASR_ENGINE=nbailab_whisper`, you can use any of the following Norwegian-optimized models:
+
+#### Standard Models (Recommended)
+- `NbAiLab/nb-whisper-tiny` - Fastest, smallest model
+- `NbAiLab/nb-whisper-base` - Good balance of speed and accuracy
+- `NbAiLab/nb-whisper-small` - Better accuracy than base
+- `NbAiLab/nb-whisper-medium` - High accuracy, moderate speed
+- `NbAiLab/nb-whisper-large` - Best accuracy, slower inference
+
+#### Beta Models (Latest versions)
+- `NbAiLab/nb-whisper-tiny-beta` - Latest tiny model
+- `NbAiLab/nb-whisper-base-beta` - Latest base model
+- `NbAiLab/nb-whisper-small-beta` - Latest small model
+- `NbAiLab/nb-whisper-medium-beta` - Latest medium model
+- `NbAiLab/nb-whisper-large-beta` - Latest large model
+
+#### Verbatim Models (Preserves exact pronunciation)
+- `NbAiLab/nb-whisper-tiny-verbatim` - Preserves pronunciation details
+- `NbAiLab/nb-whisper-base-verbatim` - Preserves pronunciation details
+- `NbAiLab/nb-whisper-small-verbatim` - Preserves pronunciation details
+- `NbAiLab/nb-whisper-medium-verbatim` - Preserves pronunciation details
+- `NbAiLab/nb-whisper-large-verbatim` - Preserves pronunciation details
+
+#### Semantic Models (Better understanding of context)
+- `NbAiLab/nb-whisper-tiny-semantic` - Better context understanding
+- `NbAiLab/nb-whisper-base-semantic` - Better context understanding
+- `NbAiLab/nb-whisper-small-semantic` - Better context understanding
+- `NbAiLab/nb-whisper-medium-semantic` - Better context understanding
+- `NbAiLab/nb-whisper-large-semantic` - Better context understanding
+
+#### Specialized Models
+- `NbAiLab/nb-whisper-large-distil-turbo-beta` - Fast large model
+- `NbAiLab/nb-whisper-large-v0.8` - Legacy large model
+- `NbAiLabBeta/nb-whisper-large-des23` - Specialized model
+
+#### Example Usage
+```bash
+# For production use (recommended)
+export ASR_ENGINE=nbailab_whisper
+export ASR_MODEL=NbAiLab/nb-whisper-large
+
+# For faster inference
+export ASR_MODEL=NbAiLab/nb-whisper-base
+
+# For latest beta version
+export ASR_MODEL=NbAiLab/nb-whisper-large-beta
+
+# For preserving exact pronunciation
+export ASR_MODEL=NbAiLab/nb-whisper-large-verbatim
+```
+
+For English-only applications, the `.en` models tend to perform better, especially for the `tiny.en` and `base.en`
+models. We observed that the difference becomes less significant for the `small.en` and `medium.en` models.
+
+The distilled models offer improved inference speed while maintaining good accuracy.
+
 ### Configuring the `Model Path`
 
 ```shell

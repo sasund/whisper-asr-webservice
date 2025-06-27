@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Transcription Player</title>
+    
+    <!-- Video.js CSS -->
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+        }
+        
+        select, input, button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.connecting {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .video-container {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .video-js {
+            margin: 0 auto;
+        }
+        
+        .transcription-container {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .transcription-text {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .transcription-segment {
+            margin-bottom: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .timestamp {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Live Transcription Player</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="serverUrl">Server URL:</label>
+                <input type="text" id="serverUrl" value="ws://localhost:9000/ws/live-transcribe" style="width: 300px;">
+            </div>
+            
+            <div class="control-group">
+                <label for="language">Språk:</label>
+                <select id="language">
+                    <option value="">Auto-detect</option>
+                    <option value="no">Norsk</option>
+                    <option value="en">Engelsk</option>
+                    <option value="sv">Svensk</option>
+                    <option value="da">Dansk</option>
+                    <option value="de">Tysk</option>
+                    <option value="fr">Fransk</option>
+                    <option value="es">Spansk</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <button id="startBtn" onclick="startTranscription()">🎤 Start Live Transcription</button>
+                <button id="stopBtn" onclick="stopTranscription()" disabled>⏹️ Stop</button>
+                <button id="clearBtn" onclick="clearTranscription()">🗑️ Clear</button>
+            </div>
+            
+            <div id="status" class="status disconnected">
+                🔴 Ikke tilkoblet
+            </div>
+        </div>
+        
+        <div class="video-container">
+            <video
+                id="myVideo"
+                class="video-js vjs-default-skin"
+                controls
+                preload="auto"
+                width="640"
+                height="360"
+                data-setup="{}"
+            >
+                <p class="vjs-no-js">
+                    To view this video please enable JavaScript, and consider upgrading to a
+                    web browser that supports HTML5 video.
+                </p>
+            </video>
+        </div>
+        
+        <div class="transcription-container">
+            <h3>📝 Live Transcription</h3>
+            <div id="transcriptionText" class="transcription-text">
+                Klikk "Start Live Transcription" for å begynne...
+            </div>
+        </div>
+    </div>
+
+    <!-- Video.js JavaScript -->
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+    
+    <script>
+        let player;
+        let websocket;
+        let mediaRecorder;
+        let audioContext;
+        let microphone;
+        let isRecording = false;
+        let transcriptionSegments = [];
+        
+        // Initialiser Video.js player
+        document.addEventListener('DOMContentLoaded', function() {
+            player = videojs('myVideo');
+        });
+        
+        function updateStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+        
+        function updateButtons(recording) {
+            document.getElementById('startBtn').disabled = recording;
+            document.getElementById('stopBtn').disabled = !recording;
+        }
+        
+        function addTranscriptionSegment(text, timestamp) {
+            const container = document.getElementById('transcriptionText');
+            const segment = document.createElement('div');
+            segment.className = 'transcription-segment';
+            
+            const timeEl = document.createElement('div');
+            timeEl.className = 'timestamp';
+            timeEl.textContent = timestamp;
+            
+            const textEl = document.createElement('div');
+            textEl.textContent = text;
+            
+            segment.appendChild(timeEl);
+            segment.appendChild(textEl);
+            container.appendChild(segment);
+            
+            // Scroll til bunnen
+            container.scrollTop = container.scrollHeight;
+            
+            // Lagre segment
+            transcriptionSegments.push({ text, timestamp });
+        }
+        
+        function clearTranscription() {
+            document.getElementById('transcriptionText').innerHTML = 
+                'Klikk "Start Live Transcription" for å begynne...';
+            transcriptionSegments = [];
+        }
+        
+        async function startTranscription() {
+            try {
+                updateStatus('🔄 Kobler til server...', 'connecting');
+                
+                // Hent konfigurasjon
+                const serverUrl = document.getElementById('serverUrl').value;
+                const language = document.getElementById('language').value;
+                
+                // Bygg WebSocket URL med språk-parameter
+                let wsUrl = serverUrl;
+                if (language) {
+                    wsUrl += `?language=${language}`;
+                }
+                
+                // Opprett WebSocket-tilkobling
+                websocket = new WebSocket(wsUrl);
+                
+                websocket.onopen = function() {
+                    updateStatus('🟢 Tilkoblet - starter opptak...', 'connected');
+                    startAudioRecording();
+                };
+                
+                websocket.onmessage = function(event) {
+                    const transcription = event.data;
+                    if (transcription && transcription !== "[ERROR] Transcription failed.") {
+                        const timestamp = new Date().toLocaleTimeString();
+                        addTranscriptionSegment(transcription.trim(), timestamp);
+                    }
+                };
+                
+                websocket.onclose = function() {
+                    updateStatus('🔴 Frakoblet', 'disconnected');
+                    stopAudioRecording();
+                    updateButtons(false);
+                };
+                
+                websocket.onerror = function(error) {
+                    updateStatus('❌ WebSocket-feil: ' + error.message, 'disconnected');
+                    stopAudioRecording();
+                    updateButtons(false);
+                };
+                
+            } catch (error) {
+                updateStatus('❌ Feil: ' + error.message, 'disconnected');
+                console.error('Error starting transcription:', error);
+            }
+        }
+        
+        function stopTranscription() {
+            if (websocket) {
+                websocket.close();
+            }
+            stopAudioRecording();
+            updateStatus('🔴 Stoppet', 'disconnected');
+            updateButtons(false);
+        }
+        
+        async function startAudioRecording() {
+            try {
+                // Få tilgang til mikrofon
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        sampleRate: 16000,
+                        channelCount: 1,
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    } 
+                });
+                
+                audioContext = new AudioContext({ sampleRate: 16000 });
+                microphone = audioContext.createMediaStreamSource(stream);
+                
+                // Opprett processor for å sende lyd til WebSocket
+                const processor = audioContext.createScriptProcessor(4096, 1, 1);
+                
+                processor.onaudioprocess = function(event) {
+                    if (websocket && websocket.readyState === WebSocket.OPEN) {
+                        const inputData = event.inputBuffer.getChannelData(0);
+                        
+                        // Konverter til 16-bit PCM
+                        const pcmData = new Int16Array(inputData.length);
+                        for (let i = 0; i < inputData.length; i++) {
+                            pcmData[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32768));
+                        }
+                        
+                        // Send lyd til server
+                        websocket.send(pcmData.buffer);
+                    }
+                };
+                
+                microphone.connect(processor);
+                processor.connect(audioContext.destination);
+                
+                isRecording = true;
+                updateButtons(true);
+                updateStatus('🟢 Live transcription aktiv - snakk nå!', 'connected');
+                
+            } catch (error) {
+                updateStatus('❌ Mikrofon-feil: ' + error.message, 'disconnected');
+                console.error('Error accessing microphone:', error);
+            }
+        }
+        
+        function stopAudioRecording() {
+            if (microphone) {
+                microphone.disconnect();
+                microphone = null;
+            }
+            
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+            
+            isRecording = false;
+        }
+        
+        // Cleanup ved page unload
+        window.addEventListener('beforeunload', function() {
+            if (websocket) {
+                websocket.close();
+            }
+            if (player) {
+                player.dispose();
+            }
+        });
+    </script>
+</body>
+</html> 

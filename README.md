@@ -60,6 +60,54 @@ docker run -d -p 9000:9000 \
 docker run -d --gpus all -p 9000:9000 -e ASR_MODEL=NbAiLab/nb-whisper-large -e ASR_ENGINE=nbailab_whisper onerahmet/openai-whisper-asr-webservice:latest-gpu
 ```
 
+## NbAiLab Whisper Models
+
+When using `ASR_ENGINE=nbailab_whisper`, you have access to a wide range of Norwegian-optimized models:
+
+### Standard Models (Recommended)
+- `NbAiLab/nb-whisper-tiny` - Fastest, smallest model
+- `NbAiLab/nb-whisper-base` - Good balance of speed and accuracy  
+- `NbAiLab/nb-whisper-small` - Better accuracy than base
+- `NbAiLab/nb-whisper-medium` - High accuracy, moderate speed
+- `NbAiLab/nb-whisper-large` - Best accuracy, slower inference
+
+### Beta Models (Latest versions)
+- `NbAiLab/nb-whisper-tiny-beta` - Latest tiny model
+- `NbAiLab/nb-whisper-base-beta` - Latest base model
+- `NbAiLab/nb-whisper-small-beta` - Latest small model
+- `NbAiLab/nb-whisper-medium-beta` - Latest medium model
+- `NbAiLab/nb-whisper-large-beta` - Latest large model
+
+### Verbatim Models (Preserves exact pronunciation)
+- `NbAiLab/nb-whisper-tiny-verbatim` - Preserves pronunciation details
+- `NbAiLab/nb-whisper-base-verbatim` - Preserves pronunciation details
+- `NbAiLab/nb-whisper-small-verbatim` - Preserves pronunciation details
+- `NbAiLab/nb-whisper-medium-verbatim` - Preserves pronunciation details
+- `NbAiLab/nb-whisper-large-verbatim` - Preserves pronunciation details
+
+### Semantic Models (Better understanding of context)
+- `NbAiLab/nb-whisper-tiny-semantic` - Better context understanding
+- `NbAiLab/nb-whisper-base-semantic` - Better context understanding
+- `NbAiLab/nb-whisper-small-semantic` - Better context understanding
+- `NbAiLab/nb-whisper-medium-semantic` - Better context understanding
+- `NbAiLab/nb-whisper-large-semantic` - Better context understanding
+
+### Example Usage
+```bash
+# For production use (recommended)
+export ASR_ENGINE=nbailab_whisper
+export ASR_MODEL=NbAiLab/nb-whisper-large
+
+# For faster inference
+export ASR_MODEL=NbAiLab/nb-whisper-base
+
+# For latest beta version
+export ASR_MODEL=NbAiLab/nb-whisper-large-beta
+
+# For preserving exact pronunciation
+export ASR_MODEL=NbAiLab/nb-whisper-large-verbatim
+```
+
 ## Key Features
 
 - Multiple ASR engines support (OpenAI Whisper, Faster Whisper, WhisperX)
@@ -71,12 +119,114 @@ docker run -d --gpus all -p 9000:9000 -e ASR_MODEL=NbAiLab/nb-whisper-large -e A
 - GPU acceleration support
 - Configurable model loading/unloading
 - REST API with Swagger documentation
+- **Live transcription via WebSocket** (new!)
+
+## Live Transcription
+
+The service now supports real-time transcription via WebSocket. This allows you to send audio chunks and receive transcription results in real-time.
+
+### WebSocket Endpoint
+```
+ws://localhost:9000/ws/live-transcribe
+```
+
+### Demo Client
+A demo client is included to test live transcription:
+
+```bash
+# Install websockets if not already installed
+pip install websockets
+
+# Run demo with a WAV file
+python demo_live_transcribe.py path/to/your/audio.wav
+
+# Run demo with an MP3 file (automatic conversion)
+python demo_live_transcribe.py path/to/your/audio.mp3
+
+# With language specification
+python demo_live_transcribe.py audio.wav --language no
+
+# Custom options
+python demo_live_transcribe.py audio.wav --host localhost --port 9000 --chunk-duration 1.0 --language en
+```
+
+### Audio Requirements
+- **Supported formats**: MP3, WAV, and all formats supported by FFmpeg
+- **Automatic conversion**: Non-WAV files are automatically converted to WAV format
+- **Recommended settings**: 16kHz, mono, 16-bit (automatic with conversion)
+- **FFmpeg required**: For MP3 and other format support
+
+### Language Support
+You can specify the language for live transcription:
+- **Auto-detect** (default): Let the model detect the language automatically
+- **Norwegian**: `--language no`
+- **English**: `--language en`
+- **Swedish**: `--language sv`
+- **Danish**: `--language da`
+- And all other languages supported by Whisper
+
+### Usage Example
+```python
+import asyncio
+import websockets
+
+async def live_transcribe():
+    # With language specification
+    uri = "ws://localhost:9000/ws/live-transcribe?language=no"
+    async with websockets.connect(uri) as websocket:
+        # Send audio chunks
+        await websocket.send(audio_chunk)
+        
+        # Receive transcription
+        transcription = await websocket.recv()
+        print(f"Transcription: {transcription}")
+
+asyncio.run(live_transcribe())
+```
+
+## Live Player
+
+A web-based live transcription player is included with Video.js integration:
+
+### Access Live Player
+```
+http://localhost:9000/static/live_player.html
+```
+
+### Audio Player med Live Transcription
+For å spille av lydfiler med live transcription:
+```
+http://localhost:9000/static/audio_player.html
+```
+
+### Features
+- **Real-time microphone transcription** via WebSocket
+- **Audio file playback with transcription** via WebSocket
+- **Video.js player** for media playback
+- **Language selection** (Norwegian, English, Swedish, etc.)
+- **Live captions** with timestamps
+- **Responsive design** for desktop and mobile
+- **Audio processing** with noise suppression and echo cancellation
+- **Drag & drop file upload** for audio files
+- **Progress tracking** for audio playback
+
+### Usage
+1. Start the whisper-asr-webservice
+2. Open `http://localhost:9000/static/live_player.html` in your browser
+3. Allow microphone access when prompted
+4. Click "Start Live Transcription" to begin
+5. Speak into your microphone and see real-time transcription
+
+### Browser Requirements
+- Modern browser with WebSocket support
+- Microphone access permission
+- HTTPS required for microphone access in production
 
 ## Environment Variables
 
 Key configuration options:
 
-- `ASR_ENGINE`: Engine selection (openai_whisper, faster_whisper, whisperx)
+- `ASR_ENGINE`: Engine selection (openai_whisper, faster_whisper, whisperx, nbailab_whisper)
 - `ASR_MODEL`: Model selection (tiny, base, small, medium, large-v3, etc.)
 - `ASR_MODEL_PATH`: Custom path to store/load models
 - `ASR_DEVICE`: Device selection (cuda, cpu)

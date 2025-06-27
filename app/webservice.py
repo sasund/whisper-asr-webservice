@@ -6,22 +6,16 @@ from urllib.parse import quote
 
 import click
 import uvicorn
-from fastapi import FastAPI, File, Query, UploadFile, applications
+from fastapi import FastAPI, File, Query, UploadFile, applications, WebSocket, WebSocketDisconnect
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from whisper import tokenizer
+import numpy as np
 
 from app.config import CONFIG
 from app.factory.asr_model_factory import ASRModelFactory
 from app.utils import load_audio
-ASR_ENGINE = os.getenv("ASR_ENGINE", "openai_whisper")
-if ASR_ENGINE == "faster_whisper":
-    from app.faster_whisper.core import language_detection, transcribe
-elif ASR_ENGINE == "nbailab_whisper":
-    from app.nbailab_whisper.core import language_detection, transcribe
-else:
-    from app.openai_whisper.core import language_detection, transcribe
 
 asr_model = ASRModelFactory.create_asr_model()
 asr_model.load_model()
@@ -52,6 +46,11 @@ if path.exists(assets_path + "/swagger-ui.css") and path.exists(assets_path + "/
         )
 
     applications.get_swagger_ui_html = swagger_monkey_patch
+
+# Serve static files for live player
+static_path = os.getcwd() + "/static"
+if path.exists(static_path):
+    app.mount("/static", StaticFiles(directory=static_path), name="static_files")
 
 
 @app.get("/", response_class=RedirectResponse, include_in_schema=False)
@@ -126,6 +125,91 @@ async def detect_language(
         "language_code": detected_lang_code,
         "confidence": confidence,
     }
+
+
+@app.websocket("/ws/live-transcribe")
+async def websocket_live_transcribe(websocket: WebSocket, language: str = None):
+    await websocket.accept()
+    audio_buffer = bytearray()
+    SAMPLE_RATE = 16000  # Kan evt. hentes fra CONFIG
+    CHUNK_SIZE = 64000  # Økt til 2 sekunder ved 16kHz, 16bit mono for bedre kontekst
+    
+    print(f"Live transcription started - Language: {language or 'auto-detect'}")
+    
+    try:
+        chunk_count = 0
+        while True:
+            chunk = await websocket.receive_bytes()
+            chunk_count += 1
+            audio_buffer.extend(chunk)
+            
+            print(f"Received chunk {chunk_count}, size: {len(chunk)} bytes, total buffer: {len(audio_buffer)} bytes")
+            
+            # Vent til vi har nok data
+            if len(audio_buffer) >= CHUNK_SIZE:
+                print(f"Processing audio buffer of size: {len(audio_buffer)} bytes")
+                # Konverter til numpy array
+                audio_np = np.frombuffer(audio_buffer, np.int16).astype(np.float32) / 32768.0
+                print(f"Audio array shape: {audio_np.shape}, min: {audio_np.min()}, max: {audio_np.max()}")
+                
+                # Sjekk om det er lyd i data
+                if np.abs(audio_np).max() < 0.01:
+                    print("Audio seems to be silence, skipping transcription")
+                    audio_buffer = bytearray()
+                    continue
+                
+                try:
+                    # Forbedret initial prompt for norsk
+                    initial_prompt = "Dette er norsk tale. Transkriber nøyaktig det som sies."
+                    if language == "en":
+                        initial_prompt = "This is English speech. Transcribe accurately what is said."
+                    elif language == "sv":
+                        initial_prompt = "Detta är svenska tal. Transkribera exakt vad som sägs."
+                    elif language == "da":
+                        initial_prompt = "Dette er dansk tale. Transkriber nøjagtigt det der siges."
+                    
+                    # Kall eksisterende transcribe-funksjon med forbedrede parametere
+                    result_file = asr_model.transcribe(
+                        audio_np, 
+                        task="transcribe", 
+                        language=language, 
+                        initial_prompt=initial_prompt,
+                        vad_filter=True,  # Aktiver VAD for bedre kvalitet
+                        word_timestamps=False, 
+                        options=None, 
+                        output="txt"
+                    )
+                    
+                    if result_file is not None and hasattr(result_file, "getvalue"):
+                        transcription_text = result_file.getvalue().strip()
+                        print(f"Transcription result: '{transcription_text}'")
+                        if transcription_text:
+                            await websocket.send_text(transcription_text)
+                        else:
+                            await websocket.send_text("[NO_SPEECH]")
+                    else:
+                        print("Transcription failed - no result file")
+                        await websocket.send_text("[ERROR] Transcription failed.")
+                        
+                except Exception as e:
+                    print(f"Error during transcription: {e}")
+                    await websocket.send_text(f"[ERROR] {str(e)}")
+                
+                audio_buffer = bytearray()  # Tøm buffer
+            else:
+                # Send en bekreftelse at vi mottok data
+                if chunk_count == 1:
+                    await websocket.send_text("[BUFFERING] Collecting audio data...")
+                
+    except WebSocketDisconnect:
+        # Klienten koblet fra - ikke prøv å lukke forbindelsen igjen
+        print("WebSocket client disconnected")
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+        try:
+            await websocket.close()
+        except:
+            pass  # Ignorer hvis forbindelsen allerede er lukket
 
 
 @click.command()
