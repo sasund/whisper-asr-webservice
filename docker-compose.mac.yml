@@ -1,0 +1,18 @@
+services:
+  whisper-asr-webservice:
+    build:
+      context: .
+      dockerfile: Dockerfile.mac
+    ports:
+      - "9000:9000"
+    environment:
+      - ASR_ENGINE=nbailab_whisper
+      - ASR_MODEL=NbAiLab/nb-whisper-large
+    volumes:
+      - ~/.cache/whisper:/root/.cache/whisper
+    # Mac GPU-støtte krever at containeren kjører med privilegerte rettigheter
+    # for å få tilgang til Metal Performance Shaders (MPS)
+    privileged: true
+    # Alternativt, hvis privileged ikke fungerer, kan du prøve:
+    # devices:
+    #   - /dev/mps0:/dev/mps0 
