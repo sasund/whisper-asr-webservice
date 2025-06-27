@@ -15,6 +15,13 @@ from whisper import tokenizer
 from app.config import CONFIG
 from app.factory.asr_model_factory import ASRModelFactory
 from app.utils import load_audio
+ASR_ENGINE = os.getenv("ASR_ENGINE", "openai_whisper")
+if ASR_ENGINE == "faster_whisper":
+    from app.faster_whisper.core import language_detection, transcribe
+elif ASR_ENGINE == "nbailab_whisper":
+    from app.nbailab_whisper.core import language_detection, transcribe
+else:
+    from app.openai_whisper.core import language_detection, transcribe
 
 asr_model = ASRModelFactory.create_asr_model()
 asr_model.load_model()

@@ -14,10 +14,11 @@ Current release (v1.8.2) supports following whisper models:
 - [openai/whisper](https://github.com/openai/whisper)@[v20240930](https://github.com/openai/whisper/releases/tag/v20240930)
 - [SYSTRAN/faster-whisper](https://github.com/SYSTRAN/faster-whisper)@[v1.1.0](https://github.com/SYSTRAN/faster-whisper/releases/tag/v1.1.0)
 - [whisperX](https://github.com/m-bain/whisperX)@[v3.1.1](https://github.com/m-bain/whisperX/releases/tag/v3.1.1)
+- [NbAiLab Whisper (via HuggingFace)](https://huggingface.co/NbAiLab) (f.eks. `NbAiLab/nb-whisper-large`, `NbAiLab/nb-whisper-small`)
 
 ## Quick Usage
 
-### CPU
+### CPU (OpenAI/NbAiLab)
 
 ```shell
 docker run -d -p 9000:9000 \
@@ -26,7 +27,15 @@ docker run -d -p 9000:9000 \
   onerahmet/openai-whisper-asr-webservice:latest
 ```
 
-### GPU
+### CPU (NbAiLab Whisper via HuggingFace)
+
+```sh
+docker run -d -p 9000:9000 -e ASR_MODEL=NbAiLab/nb-whisper-large -e ASR_ENGINE=nbailab_whisper onerahmet/openai-whisper-asr-webservice:latest
+```
+
+### GPU (OpenAI/NbAiLab)
+
+Alle støttede modeller, inkludert NbAiLab Whisper-modeller, kan kjøres på GPU dersom du bruker en Docker-image med GPU-støtte og har riktig PyTorch-installasjon.
 
 ```shell
 docker run -d --gpus all -p 9000:9000 \
@@ -43,6 +52,12 @@ To reduce container startup time by avoiding repeated downloads, you can persist
 docker run -d -p 9000:9000 \
   -v $PWD/cache:/root/.cache/ \
   onerahmet/openai-whisper-asr-webservice:latest
+```
+
+#### GPU med NbAiLab Whisper
+
+```sh
+docker run -d --gpus all -p 9000:9000 -e ASR_MODEL=NbAiLab/nb-whisper-large -e ASR_ENGINE=nbailab_whisper onerahmet/openai-whisper-asr-webservice:latest-gpu
 ```
 
 ## Key Features
