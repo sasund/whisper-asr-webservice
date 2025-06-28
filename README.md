@@ -1,7 +1,7 @@
-![Release](https://img.shields.io/github/v/release/ahmetoner/whisper-asr-webservice.svg)
-![Docker Pulls](https://img.shields.io/docker/pulls/onerahmet/openai-whisper-asr-webservice.svg)
-![Build](https://img.shields.io/github/actions/workflow/status/ahmetoner/whisper-asr-webservice/docker-publish.yml.svg)
-![Licence](https://img.shields.io/github/license/ahmetoner/whisper-asr-webservice.svg)
+![Release](https://img.shields.io/github/v/release/sasund/whisper-asr-webservice.svg)
+![Docker Pulls](https://img.shields.io/docker/pulls/sasund/whisper-asr-webservice.svg)
+![Build](https://img.shields.io/github/actions/workflow/status/sasund/whisper-asr-webservice/docker-publish.yml.svg)
+![Licence](https://img.shields.io/github/license/sasund/whisper-asr-webservice.svg)
 
 # Whisper ASR Box
 
@@ -24,7 +24,7 @@ Current release (v1.9.0-dev) supports following whisper models:
 docker run -d -p 9000:9000 \
   -e ASR_MODEL=NbAiLab/nb-whisper-large \
   -e ASR_ENGINE=nbailab_whisper \
-  onerahmet/openai-whisper-asr-webservice:latest
+  sasund/whisper-asr-webservice:latest
 ```
 
 ### CPU (OpenAI/NbAiLab)
@@ -33,13 +33,13 @@ docker run -d -p 9000:9000 \
 docker run -d -p 9000:9000 \
   -e ASR_MODEL=base \
   -e ASR_ENGINE=openai_whisper \
-  onerahmet/openai-whisper-asr-webservice:latest
+  sasund/whisper-asr-webservice:latest
 ```
 
 ### CPU (NbAiLab Whisper via HuggingFace)
 
 ```sh
-docker run -d -p 9000:9000 -e ASR_MODEL=NbAiLab/nb-whisper-large -e ASR_ENGINE=nbailab_whisper onerahmet/openai-whisper-asr-webservice:latest
+docker run -d -p 9000:9000 -e ASR_MODEL=NbAiLab/nb-whisper-large -e ASR_ENGINE=nbailab_whisper sasund/whisper-asr-webservice:latest
 ```
 
 ### GPU (NbAiLab Whisper - Default for Norwegian)
@@ -50,7 +50,7 @@ Alle støttede modeller, inkludert NbAiLab Whisper-modeller, kan kjøres på GPU
 docker run -d --gpus all -p 9000:9000 \
   -e ASR_MODEL=NbAiLab/nb-whisper-large \
   -e ASR_ENGINE=nbailab_whisper \
-  onerahmet/openai-whisper-asr-webservice:latest-gpu
+  sasund/whisper-asr-webservice:latest-gpu
 ```
 
 ### GPU (OpenAI/NbAiLab)
@@ -59,7 +59,7 @@ docker run -d --gpus all -p 9000:9000 \
 docker run -d --gpus all -p 9000:9000 \
   -e ASR_MODEL=base \
   -e ASR_ENGINE=openai_whisper \
-  onerahmet/openai-whisper-asr-webservice:latest-gpu
+  sasund/whisper-asr-webservice:latest-gpu
 ```
 
 #### Cache
@@ -69,13 +69,13 @@ To reduce container startup time by avoiding repeated downloads, you can persist
 ```shell
 docker run -d -p 9000:9000 \
   -v $PWD/cache:/root/.cache/ \
-  onerahmet/openai-whisper-asr-webservice:latest
+  sasund/whisper-asr-webservice:latest
 ```
 
 #### GPU med NbAiLab Whisper
 
 ```sh
-docker run -d --gpus all -p 9000:9000 -e ASR_MODEL=NbAiLab/nb-whisper-large -e ASR_ENGINE=nbailab_whisper onerahmet/openai-whisper-asr-webservice:latest-gpu
+docker run -d --gpus all -p 9000:9000 -e ASR_MODEL=NbAiLab/nb-whisper-large -e ASR_ENGINE=nbailab_whisper sasund/whisper-asr-webservice:latest-gpu
 ```
 
 ## Development & Testing

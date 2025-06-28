@@ -2,16 +2,16 @@
 
 Whisper ASR Webservice now available on Docker Hub. You can find the latest version of this repository on docker hub for CPU and GPU.
 
-Docker Hub: <https://hub.docker.com/r/onerahmet/openai-whisper-asr-webservice>
+Docker Hub: <https://hub.docker.com/r/sasund/whisper-asr-webservice>
 
 === ":octicons-file-code-16: `CPU`"
 
     ```shell
-    docker pull onerahmet/openai-whisper-asr-webservice:latest
+    docker pull sasund/whisper-asr-webservice:latest
     docker run -d -p 9000:9000 \
       -e ASR_MODEL=base \
       -e ASR_ENGINE=openai_whisper \
-      onerahmet/openai-whisper-asr-webservice:latest
+      sasund/whisper-asr-webservice:latest
     ```
 
 === ":octicons-file-code-16: `CPU (macOS)`"
@@ -21,21 +21,21 @@ Docker Hub: <https://hub.docker.com/r/onerahmet/openai-whisper-asr-webservice>
     > The `:latest` image tag provides both amd64 and arm64 architectures:
     
     ```shell
-    docker pull onerahmet/openai-whisper-asr-webservice:latest
+    docker pull sasund/whisper-asr-webservice:latest
     docker run -d -p 9000:9000 \
       -e ASR_MODEL=base \
       -e ASR_ENGINE=openai_whisper \
-      onerahmet/openai-whisper-asr-webservice:latest
+      sasund/whisper-asr-webservice:latest
     ```
 
 === ":octicons-file-code-16: `GPU`"
 
     ```shell
-    docker pull onerahmet/openai-whisper-asr-webservice:latest-gpu
+    docker pull sasund/whisper-asr-webservice:latest-gpu
     docker run -d --gpus all -p 9000:9000 \
       -e ASR_MODEL=base \
       -e ASR_ENGINE=openai_whisper \
-      onerahmet/openai-whisper-asr-webservice:latest-gpu
+      sasund/whisper-asr-webservice:latest-gpu
     ```
 
 ### Environment Variables
@@ -63,7 +63,7 @@ The model will then be loaded from the cache instead of being downloaded again o
     ```shell
     docker run -d -p 9000:9000 \
       -v $PWD/cache:/root/.cache \
-      onerahmet/openai-whisper-asr-webservice:latest
+      sasund/whisper-asr-webservice:latest
     ```
 
 === ":octicons-file-code-16: `With ASR_MODEL_PATH`"
@@ -72,5 +72,5 @@ The model will then be loaded from the cache instead of being downloaded again o
     docker run -d -p 9000:9000 \
       -e ASR_MODEL_PATH=/data/whisper \
       -v $PWD/cache:/data/whisper \
-      onerahmet/openai-whisper-asr-webservice:latest
+      sasund/whisper-asr-webservice:latest
     ```

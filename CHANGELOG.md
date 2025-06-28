@@ -220,7 +220,7 @@ export ASR_MODEL=NbAiLab/nb-whisper-large
   - Ensure Docker volume is set for the corresponding directory to use caching.
 
       ```bash
-      docker run -d -p 9000:9000 -e ASR_MODEL_PATH=/data/whisper -v $PWD/yourlocaldir:/data/whisper onerahmet/openai-whisper-asr-webservice:latest
+      docker run -d -p 9000:9000 -e ASR_MODEL_PATH=/data/whisper -v $PWD/yourlocaldir:/data/whisper sasund/whisper-asr-webservice:latest
       ```
 
 - Removed the `triton` dependency from `poetry.lock` to ensure the stability of the pipeline for `ARM-based` Docker images
