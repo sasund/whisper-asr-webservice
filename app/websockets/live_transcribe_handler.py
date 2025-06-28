@@ -1,13 +1,13 @@
 import logging
-from typing import Optional
 import time
+from typing import Optional
 
 import numpy as np
 from fastapi import WebSocket, WebSocketDisconnect
 
 from app.asr_models.asr_model import ASRModel
-from app.exceptions import TranscriptionError
 from app.config import CONFIG
+from app.exceptions import TranscriptionError
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class LiveTranscribeHandler:
                 new_data_size = len(self.audio_buffer) - self.last_processed_position
                 if new_data_size >= self.CHUNK_SIZE:
                     await self._process_audio_chunk(websocket, language)
-                    
+
                     # Keep overlap for context, but advance the processing position
                     if CONFIG.LIVE_OVERLAP_CHUNKS:
                         # Keep last 0.5 seconds for overlap
@@ -113,28 +113,31 @@ class LiveTranscribeHandler:
                     if CONFIG.LIVE_OUTPUT_FORMAT == "json":
                         try:
                             import json
+
                             result_json = json.loads(transcription_data)
-                            
+
                             # Add processing timestamp and chunk information
                             result_json["processing_timestamp"] = time.time()
                             result_json["chunk_duration"] = len(audio_np) / self.SAMPLE_RATE
                             result_json["buffer_size"] = len(self.audio_buffer)
-                            
+
                             # Adjust timestamps if we have overlap
                             if CONFIG.LIVE_OVERLAP_CHUNKS and self.last_processed_position > 0:
-                                overlap_duration = self.last_processed_position / (self.SAMPLE_RATE * 2)  # 2 bytes per sample
+                                overlap_duration = self.last_processed_position / (
+                                    self.SAMPLE_RATE * 2
+                                )  # 2 bytes per sample
                                 if "segments" in result_json:
                                     for segment in result_json["segments"]:
                                         if "start" in segment:
                                             segment["start"] += overlap_duration
                                         if "end" in segment:
                                             segment["end"] += overlap_duration
-                            
+
                             transcription_data = json.dumps(result_json, ensure_ascii=False)
                         except json.JSONDecodeError:
                             # If JSON parsing fails, send as is
                             pass
-                    
+
                     # Send transcription data with timing information
                     await websocket.send_text(transcription_data)
                 else:

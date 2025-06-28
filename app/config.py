@@ -53,5 +53,7 @@ class CONFIG:
     LIVE_WORD_TIMESTAMPS = os.getenv("LIVE_WORD_TIMESTAMPS", "true").lower() == "true"
     LIVE_VAD_FILTER = os.getenv("LIVE_VAD_FILTER", "true").lower() == "true"
     LIVE_OUTPUT_FORMAT = os.getenv("LIVE_OUTPUT_FORMAT", "json")  # json, txt, srt
-    LIVE_OVERLAP_CHUNKS = os.getenv("LIVE_OVERLAP_CHUNKS", "true").lower() == "true"  # Overlap chunks for better context
+    LIVE_OVERLAP_CHUNKS = (
+        os.getenv("LIVE_OVERLAP_CHUNKS", "true").lower() == "true"
+    )  # Overlap chunks for better context
     LIVE_OVERLAP_SIZE = int(os.getenv("LIVE_OVERLAP_SIZE", "16000"))  # 0.5 seconds overlap
