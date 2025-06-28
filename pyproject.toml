@@ -40,8 +40,18 @@ torchaudio = [
     { version = "2.6.0", source = "pytorch-cpu", markers = "platform_machine == 'x86_64' and sys_platform != 'darwin'" },
 ]
 
+[tool.poetry.group.dev.dependencies]
+pytest-cov = "^6.2.1"
+bandit = "^1.8.5"
+safety = "^3.5.2"
+
 [poetry.group.dev.dependencies]
 pytest = "^8.3.4"
+pytest-asyncio = "^1.0.0"
+pytest-cov = "^5.0.0"
+httpx = "^0.28.1"
+bandit = "^1.7.8"
+safety = "^2.3.5"
 ruff = "^0.9.6"
 black = "^25.1.0"
 mkdocs-material = "^9.6.4"

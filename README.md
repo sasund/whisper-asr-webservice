@@ -9,7 +9,7 @@ Whisper ASR Box is a general-purpose speech recognition toolkit. Whisper Models 
 
 ## Features
 
-Current release (v1.8.2) supports following whisper models:
+Current release (v1.9.0-dev) supports following whisper models:
 
 - [openai/whisper](https://github.com/openai/whisper)@[v20240930](https://github.com/openai/whisper/releases/tag/v20240930)
 - [SYSTRAN/faster-whisper](https://github.com/SYSTRAN/faster-whisper)@[v1.1.0](https://github.com/SYSTRAN/faster-whisper/releases/tag/v1.1.0)
@@ -17,6 +17,15 @@ Current release (v1.8.2) supports following whisper models:
 - [NbAiLab Whisper (via HuggingFace)](https://huggingface.co/NbAiLab) (f.eks. `NbAiLab/nb-whisper-large`, `NbAiLab/nb-whisper-small`)
 
 ## Quick Usage
+
+### CPU (NbAiLab Whisper - Default for Norwegian)
+
+```shell
+docker run -d -p 9000:9000 \
+  -e ASR_MODEL=NbAiLab/nb-whisper-large \
+  -e ASR_ENGINE=nbailab_whisper \
+  onerahmet/openai-whisper-asr-webservice:latest
+```
 
 ### CPU (OpenAI/NbAiLab)
 
@@ -33,9 +42,18 @@ docker run -d -p 9000:9000 \
 docker run -d -p 9000:9000 -e ASR_MODEL=NbAiLab/nb-whisper-large -e ASR_ENGINE=nbailab_whisper onerahmet/openai-whisper-asr-webservice:latest
 ```
 
-### GPU (OpenAI/NbAiLab)
+### GPU (NbAiLab Whisper - Default for Norwegian)
 
 Alle støttede modeller, inkludert NbAiLab Whisper-modeller, kan kjøres på GPU dersom du bruker en Docker-image med GPU-støtte og har riktig PyTorch-installasjon.
+
+```shell
+docker run -d --gpus all -p 9000:9000 \
+  -e ASR_MODEL=NbAiLab/nb-whisper-large \
+  -e ASR_ENGINE=nbailab_whisper \
+  onerahmet/openai-whisper-asr-webservice:latest-gpu
+```
+
+### GPU (OpenAI/NbAiLab)
 
 ```shell
 docker run -d --gpus all -p 9000:9000 \
@@ -58,6 +76,29 @@ docker run -d -p 9000:9000 \
 
 ```sh
 docker run -d --gpus all -p 9000:9000 -e ASR_MODEL=NbAiLab/nb-whisper-large -e ASR_ENGINE=nbailab_whisper onerahmet/openai-whisper-asr-webservice:latest-gpu
+```
+
+## Development & Testing
+
+### Project Structure
+The project follows a modular architecture:
+- `app/asr_models/` - ASR engine implementations
+- `app/factory/` - Factory pattern for ASR models  
+- `app/services/` - Business logic layer
+- `app/websockets/` - WebSocket handlers
+- `app/output/` - Output formatters
+- `app/exceptions/` - Custom exceptions
+
+### Running Tests
+```bash
+# Install dev dependencies
+poetry install --with dev
+
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=app tests/
 ```
 
 ## NbAiLab Whisper Models
@@ -110,7 +151,7 @@ export ASR_MODEL=NbAiLab/nb-whisper-large-verbatim
 
 ## Key Features
 
-- Multiple ASR engines support (OpenAI Whisper, Faster Whisper, WhisperX)
+- Multiple ASR engines support (OpenAI Whisper, Faster Whisper, WhisperX, NbAiLab Whisper)
 - Multiple output formats (text, JSON, VTT, SRT, TSV)
 - Word-level timestamps support
 - Voice activity detection (VAD) filtering
@@ -120,6 +161,33 @@ export ASR_MODEL=NbAiLab/nb-whisper-large-verbatim
 - Configurable model loading/unloading
 - REST API with Swagger documentation
 - **Live transcription via WebSocket** (new!)
+- **Optimized Norwegian language support** with NbAiLab models
+
+## Recent Improvements (v1.9.0-dev)
+
+### Norwegian Language Quality Fixes
+- **Fixed NbAiLab Whisper implementation**: Corrected HuggingFace pipeline usage for optimal Norwegian transcription
+- **Improved language detection**: Enhanced Norwegian language detection with proper confidence scoring
+- **Fixed result formatting**: Resolved compatibility issues with output writers for NbAiLab models
+- **Removed unsupported parameters**: Cleaned up initial_prompt handling for HuggingFace compatibility
+- **Warning suppression**: Eliminated transformers warnings for cleaner logs
+
+### Quality Improvements
+- **Better Norwegian transcription**: NbAiLab models now provide significantly better quality for Norwegian speech
+- **Stable live transcription**: Fixed WebSocket implementation for reliable real-time transcription
+- **Proper error handling**: Improved error messages and exception handling
+- **Memory optimization**: Better model loading and caching for HuggingFace models
+
+### Recommended Configuration for Norwegian
+```bash
+# For best Norwegian transcription quality
+export ASR_ENGINE=nbailab_whisper
+export ASR_MODEL=NbAiLab/nb-whisper-large
+
+# For faster processing with good quality
+export ASR_ENGINE=nbailab_whisper
+export ASR_MODEL=NbAiLab/nb-whisper-medium
+```
 
 ## Live Transcription
 

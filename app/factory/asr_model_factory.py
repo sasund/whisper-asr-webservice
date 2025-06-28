@@ -1,10 +1,12 @@
+from typing import Union
+
 from app.asr_models.asr_model import ASRModel
 from app.asr_models.faster_whisper_engine import FasterWhisperASR
 from app.asr_models.mbain_whisperx_engine import WhisperXASR
 from app.asr_models.openai_whisper_engine import OpenAIWhisperASR
 from app.config import CONFIG
+from app.exceptions import UnsupportedEngineError
 from app.nbailab_whisper import core as nbailab_core
-from typing import Union
 
 
 class NbAiLabWhisperASR(ASRModel):
@@ -32,6 +34,7 @@ class NbAiLabWhisperASR(ASRModel):
 class ASRModelFactory:
     @staticmethod
     def create_asr_model() -> ASRModel:
+        """Create an ASR model instance based on configuration."""
         if CONFIG.ASR_ENGINE == "openai_whisper":
             return OpenAIWhisperASR()
         elif CONFIG.ASR_ENGINE == "faster_whisper":
@@ -41,4 +44,4 @@ class ASRModelFactory:
         elif CONFIG.ASR_ENGINE == "nbailab_whisper":
             return NbAiLabWhisperASR()
         else:
-            raise ValueError(f"Unsupported ASR engine: {CONFIG.ASR_ENGINE}")
+            raise UnsupportedEngineError(f"Unsupported ASR engine: {CONFIG.ASR_ENGINE}")

@@ -4,8 +4,8 @@ After running the docker image interactive Swagger API documentation is availabl
 
 There are 2 endpoints available:
 
-- [/asr](##Automatic-Speech-recognition-service-/asr) (Automatic Speech Recognition)
-- [/detect-language](##Language-detection-service-/detect-language)
+- [/asr](#automatic-speech-recognition-service-asr) (Automatic Speech Recognition)
+- [/detect-language](#language-detection-service-detect-language)
 
 ## Automatic speech recognition service /asr
 

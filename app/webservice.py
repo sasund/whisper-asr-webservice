@@ -2,23 +2,25 @@ import importlib.metadata
 import os
 from os import path
 from typing import Annotated, Optional, Union
-from urllib.parse import quote
 
 import click
 import uvicorn
-from fastapi import FastAPI, File, Query, UploadFile, applications, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, Query, UploadFile, WebSocket
 from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.responses import RedirectResponse, StreamingResponse
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from whisper import tokenizer
-import numpy as np
 
 from app.config import CONFIG
 from app.factory.asr_model_factory import ASRModelFactory
-from app.utils import load_audio
+from app.services.asr_service import ASRService
+from app.websockets.live_transcribe_handler import LiveTranscribeHandler
 
+# Initialize ASR model and service
 asr_model = ASRModelFactory.create_asr_model()
 asr_model.load_model()
+asr_service = ASRService(asr_model)
+live_transcribe_handler = LiveTranscribeHandler(asr_model)
 
 LANGUAGE_CODES = sorted(tokenizer.LANGUAGES.keys())
 
@@ -32,6 +34,7 @@ app = FastAPI(
     license_info={"name": "MIT License", "url": projectMetadata["License"]},
 )
 
+# Serve static files for Swagger UI
 assets_path = os.getcwd() + "/swagger-ui-assets"
 if path.exists(assets_path + "/swagger-ui.css") and path.exists(assets_path + "/swagger-ui-bundle.js"):
     app.mount("/assets", StaticFiles(directory=assets_path), name="static")
@@ -45,7 +48,10 @@ if path.exists(assets_path + "/swagger-ui.css") and path.exists(assets_path + "/
             swagger_js_url="/assets/swagger-ui-bundle.js",
         )
 
-    applications.get_swagger_ui_html = swagger_monkey_patch
+    # Monkey patch the swagger UI function
+    import fastapi.openapi.docs
+
+    fastapi.openapi.docs.get_swagger_ui_html = swagger_monkey_patch
 
 # Serve static files for live player
 static_path = os.getcwd() + "/static"
@@ -66,7 +72,7 @@ async def asr(
     language: Union[str, None] = Query(default=None, enum=LANGUAGE_CODES),
     initial_prompt: Union[str, None] = Query(default=None),
     vad_filter: Annotated[
-        bool | None,
+        bool,
         Query(
             description="Enable the voice activity detection (VAD) to filter out parts of the audio without speech",
             include_in_schema=(True if CONFIG.ASR_ENGINE == "faster_whisper" else False),
@@ -94,23 +100,19 @@ async def asr(
     ),
     output: Union[str, None] = Query(default="txt", enum=["txt", "vtt", "srt", "tsv", "json"]),
 ):
-    result = asr_model.transcribe(
-        load_audio(audio_file.file, encode),
-        task,
-        language,
-        initial_prompt,
-        vad_filter,
-        word_timestamps,
-        {"diarize": diarize, "min_speakers": min_speakers, "max_speakers": max_speakers},
-        output,
-    )
-    return StreamingResponse(
-        result,
-        media_type="text/plain",
-        headers={
-            "Asr-Engine": CONFIG.ASR_ENGINE,
-            "Content-Disposition": f'attachment; filename="{quote(audio_file.filename)}.{output}"',
-        },
+    """Transcribe audio file using the configured ASR engine."""
+    return await asr_service.transcribe_audio(
+        audio_file=audio_file,
+        task=task,
+        language=language,
+        initial_prompt=initial_prompt,
+        vad_filter=vad_filter,
+        word_timestamps=word_timestamps,
+        diarize=diarize,
+        min_speakers=min_speakers,
+        max_speakers=max_speakers,
+        output=output,
+        encode=encode,
     )
 
 
@@ -119,97 +121,14 @@ async def detect_language(
     audio_file: UploadFile = File(...),  # noqa: B008
     encode: bool = Query(default=True, description="Encode audio first through FFmpeg"),
 ):
-    detected_lang_code, confidence = asr_model.language_detection(load_audio(audio_file.file, encode))
-    return {
-        "detected_language": tokenizer.LANGUAGES[detected_lang_code],
-        "language_code": detected_lang_code,
-        "confidence": confidence,
-    }
+    """Detect the language of the audio file."""
+    return await asr_service.detect_language(audio_file=audio_file, encode=encode)
 
 
 @app.websocket("/ws/live-transcribe")
-async def websocket_live_transcribe(websocket: WebSocket, language: str = None):
-    await websocket.accept()
-    audio_buffer = bytearray()
-    SAMPLE_RATE = 16000  # Kan evt. hentes fra CONFIG
-    CHUNK_SIZE = 64000  # Økt til 2 sekunder ved 16kHz, 16bit mono for bedre kontekst
-    
-    print(f"Live transcription started - Language: {language or 'auto-detect'}")
-    
-    try:
-        chunk_count = 0
-        while True:
-            chunk = await websocket.receive_bytes()
-            chunk_count += 1
-            audio_buffer.extend(chunk)
-            
-            print(f"Received chunk {chunk_count}, size: {len(chunk)} bytes, total buffer: {len(audio_buffer)} bytes")
-            
-            # Vent til vi har nok data
-            if len(audio_buffer) >= CHUNK_SIZE:
-                print(f"Processing audio buffer of size: {len(audio_buffer)} bytes")
-                # Konverter til numpy array
-                audio_np = np.frombuffer(audio_buffer, np.int16).astype(np.float32) / 32768.0
-                print(f"Audio array shape: {audio_np.shape}, min: {audio_np.min()}, max: {audio_np.max()}")
-                
-                # Sjekk om det er lyd i data
-                if np.abs(audio_np).max() < 0.01:
-                    print("Audio seems to be silence, skipping transcription")
-                    audio_buffer = bytearray()
-                    continue
-                
-                try:
-                    # Forbedret initial prompt for norsk
-                    initial_prompt = "Dette er norsk tale. Transkriber nøyaktig det som sies."
-                    if language == "en":
-                        initial_prompt = "This is English speech. Transcribe accurately what is said."
-                    elif language == "sv":
-                        initial_prompt = "Detta är svenska tal. Transkribera exakt vad som sägs."
-                    elif language == "da":
-                        initial_prompt = "Dette er dansk tale. Transkriber nøjagtigt det der siges."
-                    
-                    # Kall eksisterende transcribe-funksjon med forbedrede parametere
-                    result_file = asr_model.transcribe(
-                        audio_np, 
-                        task="transcribe", 
-                        language=language, 
-                        initial_prompt=initial_prompt,
-                        vad_filter=True,  # Aktiver VAD for bedre kvalitet
-                        word_timestamps=False, 
-                        options=None, 
-                        output="txt"
-                    )
-                    
-                    if result_file is not None and hasattr(result_file, "getvalue"):
-                        transcription_text = result_file.getvalue().strip()
-                        print(f"Transcription result: '{transcription_text}'")
-                        if transcription_text:
-                            await websocket.send_text(transcription_text)
-                        else:
-                            await websocket.send_text("[NO_SPEECH]")
-                    else:
-                        print("Transcription failed - no result file")
-                        await websocket.send_text("[ERROR] Transcription failed.")
-                        
-                except Exception as e:
-                    print(f"Error during transcription: {e}")
-                    await websocket.send_text(f"[ERROR] {str(e)}")
-                
-                audio_buffer = bytearray()  # Tøm buffer
-            else:
-                # Send en bekreftelse at vi mottok data
-                if chunk_count == 1:
-                    await websocket.send_text("[BUFFERING] Collecting audio data...")
-                
-    except WebSocketDisconnect:
-        # Klienten koblet fra - ikke prøv å lukke forbindelsen igjen
-        print("WebSocket client disconnected")
-    except Exception as e:
-        print(f"WebSocket error: {e}")
-        try:
-            await websocket.close()
-        except:
-            pass  # Ignorer hvis forbindelsen allerede er lukket
+async def websocket_live_transcribe(websocket: WebSocket, language: Optional[str] = None):
+    """WebSocket endpoint for live transcription."""
+    await live_transcribe_handler.handle_connection(websocket, language)
 
 
 @click.command()
@@ -229,7 +148,13 @@ async def websocket_live_transcribe(websocket: WebSocket, language: str = None):
 )
 @click.version_option(version=projectMetadata["Version"])
 def start(host: str, port: Optional[int] = None):
-    uvicorn.run(app, host=host, port=port)
+    """Start the ASR webservice."""
+    uvicorn.run(
+        "app.webservice:app",
+        host=host,
+        port=port or 9000,
+        log_level="info",
+    )
 
 
 if __name__ == "__main__":

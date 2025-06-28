@@ -133,6 +133,34 @@
             font-size: 12px;
             color: #666;
             margin-bottom: 5px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+        
+        .transcription-segment.synced {
+            border-left-color: #28a745;
+            background: #f8fff9;
+        }
+        
+        .transcription-segment.unsynced {
+            border-left-color: #ffc107;
+            background: #fffbf0;
+        }
+        
+        .sync-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .sync-indicator.synced {
+            background: #28a745;
+        }
+        
+        .sync-indicator.unsynced {
+            background: #ffc107;
         }
         
         .error {
@@ -217,10 +245,25 @@
         let microphone;
         let isRecording = false;
         let transcriptionSegments = [];
+        let startTime = 0;
+        let audioStartTime = 0;
         
         // Initialiser Video.js player
         document.addEventListener('DOMContentLoaded', function() {
             player = videojs('myVideo');
+            
+            // Lytt på play/pause events for bedre synkronisering
+            player.on('play', function() {
+                audioStartTime = Date.now() - (player.currentTime() * 1000);
+            });
+            
+            player.on('pause', function() {
+                // Pause transcription hvis nødvendig
+            });
+            
+            player.on('ended', function() {
+                stopTranscription();
+            });
         });
         
         function updateStatus(message, type) {
@@ -234,14 +277,37 @@
             document.getElementById('stopBtn').disabled = !recording;
         }
         
-        function addTranscriptionSegment(text, timestamp) {
+        function addTranscriptionSegment(text, timestamp, audioTime = null) {
             const container = document.getElementById('transcriptionText');
             const segment = document.createElement('div');
             segment.className = 'transcription-segment';
             
             const timeEl = document.createElement('div');
             timeEl.className = 'timestamp';
-            timeEl.textContent = timestamp;
+            
+            // Bruk audio tid hvis tilgjengelig, ellers bruk system tid
+            if (audioTime !== null) {
+                const minutes = Math.floor(audioTime / 60);
+                const seconds = Math.floor(audioTime % 60);
+                const milliseconds = Math.floor((audioTime % 1) * 1000);
+                timeEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
+                
+                // Legg til synkroniseringsindikator
+                const syncIndicator = document.createElement('span');
+                syncIndicator.className = 'sync-indicator synced';
+                timeEl.insertBefore(syncIndicator, timeEl.firstChild);
+                
+                segment.classList.add('synced');
+            } else {
+                timeEl.textContent = timestamp;
+                
+                // Legg til usynkronisert indikator
+                const syncIndicator = document.createElement('span');
+                syncIndicator.className = 'sync-indicator unsynced';
+                timeEl.insertBefore(syncIndicator, timeEl.firstChild);
+                
+                segment.classList.add('unsynced');
+            }
             
             const textEl = document.createElement('div');
             textEl.textContent = text;
@@ -253,8 +319,8 @@
             // Scroll til bunnen
             container.scrollTop = container.scrollHeight;
             
-            // Lagre segment
-            transcriptionSegments.push({ text, timestamp });
+            // Lagre segment med audio tid
+            transcriptionSegments.push({ text, timestamp, audioTime });
         }
         
         function clearTranscription() {
@@ -289,7 +355,38 @@
                     const transcription = event.data;
                     if (transcription && transcription !== "[ERROR] Transcription failed.") {
                         const timestamp = new Date().toLocaleTimeString();
-                        addTranscriptionSegment(transcription.trim(), timestamp);
+                        
+                        // Prøv å parse som JSON for tidsstempler
+                        let transcriptionText = transcription;
+                        let segmentStart = null;
+                        let segmentEnd = null;
+                        
+                        try {
+                            const jsonData = JSON.parse(transcription);
+                            if (jsonData.segments && jsonData.segments.length > 0) {
+                                // Bruk første segment for tidsstempler
+                                const segment = jsonData.segments[0];
+                                transcriptionText = segment.text || jsonData.text || transcription;
+                                segmentStart = segment.start;
+                                segmentEnd = segment.end;
+                            } else if (jsonData.text) {
+                                transcriptionText = jsonData.text;
+                            }
+                        } catch (e) {
+                            // Hvis det ikke er JSON, bruk som vanlig tekst
+                            transcriptionText = transcription;
+                        }
+                        
+                        // Beregn audio tid hvis vi spiller av en fil
+                        let audioTime = null;
+                        if (player && player.currentTime) {
+                            audioTime = player.currentTime();
+                        } else if (segmentStart !== null) {
+                            // Bruk segment start tid hvis tilgjengelig
+                            audioTime = segmentStart;
+                        }
+                        
+                        addTranscriptionSegment(transcriptionText.trim(), timestamp, audioTime);
                     }
                 };
                 

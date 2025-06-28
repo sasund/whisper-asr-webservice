@@ -1,11 +1,11 @@
 import time
 from io import StringIO
 from threading import Thread
-from typing import BinaryIO, Union
+from typing import TextIO, Union
 
 import whisper
 import whisperx
-from whisperx.utils import ResultWriter, SubtitlesWriter, WriteJSON, WriteSRT, WriteTSV, WriteTXT, WriteVTT
+from whisperx.utils import WriteJSON, WriteSRT, WriteTSV, WriteTXT, WriteVTT
 
 from app.asr_models.asr_model import ASRModel
 from app.config import CONFIG
@@ -13,26 +13,17 @@ from app.config import CONFIG
 
 class WhisperXASR(ASRModel):
     def __init__(self):
-        super().__init__()
-        self.model = {
-            'whisperx': None,
-            'diarize_model': None,
-            'align_model': {}
-        }
+        self.model = {'whisperx': None, 'diarize_model': None, 'align_model': {}}
 
     def load_model(self):
         asr_options = {"without_timestamps": False}
         self.model['whisperx'] = whisperx.load_model(
-            CONFIG.MODEL_NAME,
-            device=CONFIG.DEVICE,
-            compute_type=CONFIG.MODEL_QUANTIZATION,
-            asr_options=asr_options
+            CONFIG.MODEL_NAME, device=CONFIG.DEVICE, compute_type=CONFIG.MODEL_QUANTIZATION, asr_options=asr_options
         )
 
         if CONFIG.HF_TOKEN != "":
             self.model['diarize_model'] = whisperx.DiarizationPipeline(
-                use_auth_token=CONFIG.HF_TOKEN,
-                device=CONFIG.DEVICE
+                use_auth_token=CONFIG.HF_TOKEN, device=CONFIG.DEVICE
             )
 
         Thread(target=self.monitor_idleness, daemon=True).start()
@@ -77,12 +68,14 @@ class WhisperXASR(ASRModel):
             result["segments"], model_x, metadata, audio, CONFIG.DEVICE, return_char_alignments=False
         )
 
-        if options.get("diarize", False) and CONFIG.HF_TOKEN != "":
+        if options and options.get("diarize", False) and CONFIG.HF_TOKEN != "":
             min_speakers = options.get("min_speakers", None)
             max_speakers = options.get("max_speakers", None)
             # add min/max number of speakers if known
             diarize_segments = self.model['diarize_model'](audio, min_speakers, max_speakers)
             result = whisperx.assign_word_speakers(diarize_segments, result)
+        # Convert to regular dict to allow adding language key
+        result = dict(result)
         result["language"] = language
 
         output_file = StringIO()
@@ -96,31 +89,31 @@ class WhisperXASR(ASRModel):
         audio = whisper.pad_or_trim(audio)
 
         # make log-Mel spectrogram and move to the same device as the model
-        mel = whisper.log_mel_spectrogram(audio).to(self.model.device)
+        mel = whisper.log_mel_spectrogram(audio).to(CONFIG.DEVICE)
 
         # detect the spoken language
         with self.model_lock:
             if self.model is None:
                 self.load_model()
-            _, probs = self.model.detect_language(mel)
+            _, probs = self.model['whisperx'].detect_language(mel)
         detected_lang_code = max(probs, key=probs.get)
 
         return detected_lang_code
 
-    def write_result(self, result: dict, file: BinaryIO, output: Union[str, None]):
+    def write_result(self, result: dict, file: TextIO, output: Union[str, None]):
         default_options = {
             "max_line_width": CONFIG.SUBTITLE_MAX_LINE_WIDTH,
             "max_line_count": CONFIG.SUBTITLE_MAX_LINE_COUNT,
-            "highlight_words": CONFIG.SUBTITLE_HIGHLIGHT_WORDS
+            "highlight_words": CONFIG.SUBTITLE_HIGHLIGHT_WORDS,
         }
 
         if output == "srt":
-            WriteSRT(SubtitlesWriter).write_result(result, file=file, options=default_options)
+            WriteSRT("").write_result(result, file=file, options=default_options)
         elif output == "vtt":
-            WriteVTT(SubtitlesWriter).write_result(result, file=file, options=default_options)
+            WriteVTT("").write_result(result, file=file, options=default_options)
         elif output == "tsv":
-            WriteTSV(ResultWriter).write_result(result, file=file, options=default_options)
+            WriteTSV("").write_result(result, file=file, options=default_options)
         elif output == "json":
-            WriteJSON(ResultWriter).write_result(result, file=file, options=default_options)
+            WriteJSON("").write_result(result, file=file, options=default_options)
         else:
-            WriteTXT(ResultWriter).write_result(result, file=file, options=default_options)
+            WriteTXT("").write_result(result, file=file, options=default_options)

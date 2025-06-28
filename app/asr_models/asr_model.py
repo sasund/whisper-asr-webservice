@@ -2,7 +2,7 @@ import gc
 import time
 from abc import ABC, abstractmethod
 from threading import Lock
-from typing import Union
+from typing import Tuple, Union
 
 import torch
 
@@ -17,9 +17,6 @@ class ASRModel(ABC):
     model = None
     model_lock = Lock()
     last_activity_time = time.time()
-
-    def __init__(self):
-        pass
 
     @abstractmethod
     def load_model(self):
@@ -46,9 +43,10 @@ class ASRModel(ABC):
         pass
 
     @abstractmethod
-    def language_detection(self, audio):
+    def language_detection(self, audio) -> Union[str, Tuple[str, float]]:
         """
         Perform language detection on the given audio file.
+        Returns either a language code string or a tuple of (language_code, confidence).
         """
         pass
 

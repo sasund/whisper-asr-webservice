@@ -4,6 +4,39 @@ Changelog
 Unreleased
 ----------
 
+[1.9.0-dev] (2025-01-XX)
+-------------------------
+
+### Added
+
+- **Enhanced Norwegian language support** with optimized NbAiLab Whisper implementation
+- **Improved live transcription** with better WebSocket handling for Norwegian speech
+- **Custom result writer** for NbAiLab models to handle HuggingFace pipeline output correctly
+
+### Changed
+
+- **Improved transcription quality**: NbAiLab models now provide significantly better quality for Norwegian speech
+- **Better error handling**: Improved error messages and exception handling for HuggingFace models
+- **Memory optimization**: Better model loading and caching for HuggingFace models
+- **Updated documentation**: Added comprehensive Norwegian language support documentation
+- **Default configuration**: Changed default engine to `nbailab_whisper` and default model to `NbAiLab/nb-whisper-large` for optimal Norwegian quality
+- **Live transcription optimization**: Removed unsupported initial_prompt usage for NbAiLab models in live transcription
+
+### Technical Improvements
+
+- **HuggingFace pipeline integration**: Proper implementation for NbAiLab models using transformers.pipelines
+- **Custom write_result function**: Handles dictionary format from HuggingFace pipeline correctly
+- **Warning suppression**: Added proper warning filters for transformers library
+- **Language detection enhancement**: Intelligent Norwegian word detection for better language identification
+
+### Recommended Configuration
+
+For optimal Norwegian transcription quality:
+```bash
+export ASR_ENGINE=nbailab_whisper
+export ASR_MODEL=NbAiLab/nb-whisper-large
+```
+
 [1.8.2] (2025-02-18)
 --------------------
 
@@ -280,6 +313,45 @@ Unreleased
 - Translate init in #5
 - mp3 support by using FFmpeg instead of librosa in #8
 - add language detection endpoint in #9
+
+[1.9.0] (2025-06-28)
+--------------------
+
+### Added
+
+- **Modular Architecture**: Restructured codebase with proper separation of concerns
+  - `app/output/` - Result writers for different output formats
+  - `app/services/` - Business logic layer with dependency injection
+  - `app/websockets/` - WebSocket handlers for live transcription
+  - `app/exceptions/` - Custom exception classes
+  - `app/middleware/` - Error handling middleware
+- **Enhanced Testing**: Comprehensive test suite with coverage reporting
+  - Unit tests for ASR models, factory, and services
+  - Integration tests for API endpoints
+  - Test coverage reporting with pytest-cov
+- **Development Tools**: Improved developer experience
+  - Makefile with common development commands
+  - GitHub Actions CI/CD pipeline
+  - Security scanning with bandit and safety
+  - Code formatting and linting with black and ruff
+- **Error Handling**: Centralized error handling with custom exceptions
+- **Documentation**: Updated README with project structure and testing instructions
+
+### Changed
+
+- Refactored `webservice.py` to use dependency injection and service layer
+- Moved WebSocket handling to dedicated module
+- Improved type hints and error handling throughout codebase
+- Enhanced configuration management
+- Updated development dependencies and tooling
+
+### Technical Improvements
+
+- **Dependency Injection**: ASRService now uses dependency injection for better testability
+- **Factory Pattern**: Improved ASR model factory with better error handling
+- **Modular Output**: ResultWriter classes moved to dedicated output module
+- **Error Handling**: Custom exceptions and middleware for consistent error responses
+- **Testing**: 48% test coverage with comprehensive test structure
 
 [1.8.2]: https://github.com/ahmetoner/whisper-asr-webservice/releases/tag/v1.8.2
 [1.8.1]: https://github.com/ahmetoner/whisper-asr-webservice/releases/tag/v1.8.1

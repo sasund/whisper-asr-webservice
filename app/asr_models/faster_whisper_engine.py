@@ -1,14 +1,13 @@
 import time
 from io import StringIO
 from threading import Thread
-from typing import BinaryIO, Union
+from typing import TextIO, Union
 
-import whisper
 from faster_whisper import WhisperModel
 
 from app.asr_models.asr_model import ASRModel
 from app.config import CONFIG
-from app.utils import ResultWriter, WriteJSON, WriteSRT, WriteTSV, WriteTXT, WriteVTT
+from app.output.result_writers import WriteJSON, WriteSRT, WriteTSV, WriteTXT, WriteVTT
 
 
 class FasterWhisperASR(ASRModel):
@@ -19,21 +18,21 @@ class FasterWhisperASR(ASRModel):
             model_size_or_path=CONFIG.MODEL_NAME,
             device=CONFIG.DEVICE,
             compute_type=CONFIG.MODEL_QUANTIZATION,
-            download_root=CONFIG.MODEL_PATH
+            download_root=CONFIG.MODEL_PATH,
         )
 
         Thread(target=self.monitor_idleness, daemon=True).start()
 
     def transcribe(
-            self,
-            audio,
-            task: Union[str, None],
-            language: Union[str, None],
-            initial_prompt: Union[str, None],
-            vad_filter: Union[bool, None],
-            word_timestamps: Union[bool, None],
-            options: Union[dict, None],
-            output,
+        self,
+        audio,
+        task: Union[str, None],
+        language: Union[str, None],
+        initial_prompt: Union[str, None],
+        vad_filter: Union[bool, None],
+        word_timestamps: Union[bool, None],
+        options: Union[dict, None],
+        output,
     ):
         self.last_activity_time = time.time()
 
@@ -41,7 +40,9 @@ class FasterWhisperASR(ASRModel):
             if self.model is None:
                 self.load_model()
 
-        options_dict = {"task": task}
+        options_dict = {}
+        if task:
+            options_dict["task"] = task
         if language:
             options_dict["language"] = language
         if initial_prompt:
@@ -50,6 +51,7 @@ class FasterWhisperASR(ASRModel):
             options_dict["vad_filter"] = True
         if word_timestamps:
             options_dict["word_timestamps"] = True
+
         with self.model_lock:
             segments = []
             text = ""
@@ -70,10 +72,8 @@ class FasterWhisperASR(ASRModel):
         self.last_activity_time = time.time()
 
         with self.model_lock:
-            if self.model is None: self.load_model()
-
-        # load audio and pad/trim it to fit 30 seconds
-        audio = whisper.pad_or_trim(audio)
+            if self.model is None:
+                self.load_model()
 
         # detect the spoken language
         with self.model_lock:
@@ -83,14 +83,19 @@ class FasterWhisperASR(ASRModel):
 
         return detected_lang_code, detected_language_confidence
 
-    def write_result(self, result: dict, file: BinaryIO, output: Union[str, None]):
+    def write_result(self, result: dict, file: TextIO, output: Union[str, None]):
         if output == "srt":
-            WriteSRT(ResultWriter).write_result(result, file=file)
+            writer = WriteSRT("")
+            writer.write_result(result, file=file)
         elif output == "vtt":
-            WriteVTT(ResultWriter).write_result(result, file=file)
+            writer = WriteVTT("")
+            writer.write_result(result, file=file)
         elif output == "tsv":
-            WriteTSV(ResultWriter).write_result(result, file=file)
+            writer = WriteTSV("")
+            writer.write_result(result, file=file)
         elif output == "json":
-            WriteJSON(ResultWriter).write_result(result, file=file)
+            writer = WriteJSON("")
+            writer.write_result(result, file=file)
         else:
-            WriteTXT(ResultWriter).write_result(result, file=file)
+            writer = WriteTXT("")
+            writer.write_result(result, file=file)

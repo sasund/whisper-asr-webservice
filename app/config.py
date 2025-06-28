@@ -8,8 +8,9 @@ class CONFIG:
     Configuration class for ASR models.
     Reads environment variables for runtime configuration, with sensible defaults.
     """
-    # Determine the ASR engine ('faster_whisper', 'openai_whisper' or 'whisperx')
-    ASR_ENGINE = os.getenv("ASR_ENGINE", "openai_whisper")
+
+    # Determine the ASR engine ('faster_whisper', 'openai_whisper', 'whisperx', or 'nbailab_whisper')
+    ASR_ENGINE = os.getenv("ASR_ENGINE", "nbailab_whisper")
 
     # Retrieve Huggingface Token
     HF_TOKEN = os.getenv("HF_TOKEN", "")
@@ -20,7 +21,8 @@ class CONFIG:
     DEVICE = os.getenv("ASR_DEVICE", "cuda" if torch.cuda.is_available() else "cpu")
 
     # Model name to use (e.g., "base", "small", etc.)
-    MODEL_NAME = os.getenv("ASR_MODEL", "base")
+    # Default to NbAiLab large model for best Norwegian quality
+    MODEL_NAME = os.getenv("ASR_MODEL", "NbAiLab/nb-whisper-large")
 
     # Path to the model directory
     MODEL_PATH = os.getenv("ASR_MODEL_PATH", os.path.join(os.path.expanduser("~"), ".cache", "whisper"))
@@ -45,3 +47,11 @@ class CONFIG:
     SUBTITLE_MAX_LINE_WIDTH = int(os.getenv("SUBTITLE_MAX_LINE_WIDTH", 1000))
     SUBTITLE_MAX_LINE_COUNT = int(os.getenv("SUBTITLE_MAX_LINE_COUNT", 2))
     SUBTITLE_HIGHLIGHT_WORDS = os.getenv("SUBTITLE_HIGHLIGHT_WORDS", "false").lower() == "true"
+
+    # Live transcription settings
+    LIVE_CHUNK_SIZE = int(os.getenv("LIVE_CHUNK_SIZE", "64000"))  # 2 seconds at 16kHz, 16bit mono (better for context)
+    LIVE_WORD_TIMESTAMPS = os.getenv("LIVE_WORD_TIMESTAMPS", "true").lower() == "true"
+    LIVE_VAD_FILTER = os.getenv("LIVE_VAD_FILTER", "true").lower() == "true"
+    LIVE_OUTPUT_FORMAT = os.getenv("LIVE_OUTPUT_FORMAT", "json")  # json, txt, srt
+    LIVE_OVERLAP_CHUNKS = os.getenv("LIVE_OVERLAP_CHUNKS", "true").lower() == "true"  # Overlap chunks for better context
+    LIVE_OVERLAP_SIZE = int(os.getenv("LIVE_OVERLAP_SIZE", "16000"))  # 0.5 seconds overlap
