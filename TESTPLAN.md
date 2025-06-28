@@ -5,7 +5,6 @@
 ### Forutsetninger
 
 - Python 3.10+ og Poetry installert
-- (Valgfritt) Node.js fjernet, kun Python/Poetry brukes
 - Alle nødvendige modeller lastes ned automatisk ved første kjøring
 - Test-lydfiler finnes i `audio/` og `tests/fixtures/audio_samples/`
 
