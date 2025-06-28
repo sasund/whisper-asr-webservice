@@ -19,13 +19,6 @@ Whisper ASR Box is a comprehensive speech recognition toolkit that supports mult
 - **REST API** with Swagger documentation
 - **Web-based live player** for real-time transcription in the browser
 
-**Live Transcription:**
-- Real-time transcription via WebSocket
-- Microphone support in the browser
-- Audio file playback with live transcription
-- Language selection (Norwegian, English, Swedish, Danish, etc.)
-- Responsive design for desktop and mobile
-
 Whisper models are trained on large datasets of diverse audio and can perform multilingual speech recognition, speech translation, and language identification.
 
 ## Features
