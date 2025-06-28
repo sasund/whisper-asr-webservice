@@ -1,102 +1,102 @@
-# Kvalitetsoptimalisering for ASR
+# Quality Optimization for ASR
 
-## Miljøvariabler for bedre kvalitet
+## Environment Variables for Better Quality
 
-### 1. **Bruk større modell**
+### 1. **Use Larger Model**
 ```bash
-# For beste kvalitet (langsommere)
+# For best quality (slower)
 export ASR_MODEL=large
 
-# For god balanse (medium)
+# For good balance (medium)
 export ASR_MODEL=medium
 
-# For rask transkribering (mindre kvalitet)
+# For fast transcription (lower quality)
 export ASR_MODEL=base
 ```
 
-### 2. **Optimaliser kvantisering**
+### 2. **Optimize Quantization**
 ```bash
-# For beste kvalitet på GPU
+# For best quality on GPU
 export ASR_QUANTIZATION=float32
 
-# For god balanse på GPU
+# For good balance on GPU
 export ASR_QUANTIZATION=float16
 
-# For raskest på CPU (minst kvalitet)
+# For fastest on CPU (lowest quality)
 export ASR_QUANTIZATION=int8
 ```
 
-### 3. **Bruk NbAiLab modeller for norsk**
+### 3. **Use NbAiLab Models for Norwegian**
 ```bash
-# Beste kvalitet for norsk
+# Best quality for Norwegian
 export ASR_ENGINE=nbailab_whisper
 export ASR_MODEL=NbAiLab/nb-whisper-large
 
-# God balanse
+# Good balance
 export ASR_MODEL=NbAiLab/nb-whisper-medium
 
-# Rask transkribering
+# Fast transcription
 export ASR_MODEL=NbAiLab/nb-whisper-base
 ```
 
-### 4. **Aktiver VAD for bedre kvalitet**
+### 4. **Enable VAD for Better Quality**
 ```bash
-# I API-kallet, sett vad_filter=true
+# In API call, set vad_filter=true
 curl -X POST "http://localhost:9000/asr?vad_filter=true" \
   -F "audio_file=@radio.mp3"
 ```
 
-## Anbefalte konfigurasjoner
+## Recommended Configurations
 
-### For beste kvalitet (radio/podcast):
+### For Best Quality (radio/podcast):
 ```bash
 export ASR_ENGINE=nbailab_whisper
 export ASR_MODEL=NbAiLab/nb-whisper-large
 export ASR_QUANTIZATION=float32
-export ASR_DEVICE=cuda  # Hvis GPU tilgjengelig
+export ASR_DEVICE=cuda  # If GPU available
 ```
 
-### For god balanse:
+### For Good Balance:
 ```bash
 export ASR_ENGINE=nbailab_whisper
 export ASR_MODEL=NbAiLab/nb-whisper-medium
 export ASR_QUANTIZATION=float16
 ```
 
-### For live transkribering:
+### For Live Transcription:
 ```bash
 export ASR_ENGINE=nbailab_whisper
 export ASR_MODEL=NbAiLab/nb-whisper-base
 export ASR_QUANTIZATION=float16
 ```
 
-## API-parametere for bedre kvalitet
+## API Parameters for Better Quality
 
-### Transkribering med høy kvalitet:
+### High-Quality Transcription:
 ```bash
 curl -X POST "http://localhost:9000/asr" \
   -F "audio_file=@radio.mp3" \
   -F "language=no" \
-  -F "initial_prompt=Dette er norsk radio. Transkriber nøyaktig det som sies." \
+  -F "initial_prompt=This is Norwegian radio. Transcribe exactly what is said." \
   -F "vad_filter=true" \
   -F "word_timestamps=false"
 ```
 
-### Live transkribering med forbedret kvalitet:
+### Live Transcription with Improved Quality:
 ```bash
-# I WebSocket-kallet, spesifiser språk
+# In WebSocket call, specify language
 ws://localhost:9000/ws/live-transcribe?language=no
 ```
 
-## Feilsøking
+## Troubleshooting
 
-### Hvis kvaliteten fortsatt er dårlig:
-1. **Sjekk lydkvaliteten** - Radio-filer bør være 16kHz, mono
-2. **Bruk initial_prompt** - Gi kontekst om innholdet
-3. **Aktiver VAD** - Filtrer ut støy
-4. **Spesifiser språk** - Ikke bruk auto-detect for norsk radio
+### If Quality is Still Poor:
+1. **Check Audio Quality** - Radio files should be 16kHz, mono
+2. **Use initial_prompt** - Provide context about the content
+3. **Enable VAD** - Filter out noise
+4. **Specify Language** - Don't use auto-detect for Norwegian radio
 
-### Ytelsesoptimalisering:
-1. **GPU-bruk** - Bruk CUDA hvis tilgjengelig
-2. **Modell-caching** - La modellen forbli i minnet
-3. **Batch-processing** - Behandle flere filer samtidig 
+### Performance Optimization:
+1. **GPU Usage** - Use CUDA if available
+2. **Model Caching** - Keep model in memory
+3. **Batch Processing** - Process multiple files simultaneously 

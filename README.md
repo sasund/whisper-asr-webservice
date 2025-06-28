@@ -14,7 +14,7 @@ Current release (v1.9.0-dev) supports following whisper models:
 - [openai/whisper](https://github.com/openai/whisper)@[v20240930](https://github.com/openai/whisper/releases/tag/v20240930)
 - [SYSTRAN/faster-whisper](https://github.com/SYSTRAN/faster-whisper)@[v1.1.0](https://github.com/SYSTRAN/faster-whisper/releases/tag/v1.1.0)
 - [whisperX](https://github.com/m-bain/whisperX)@[v3.1.1](https://github.com/m-bain/whisperX/releases/tag/v3.1.1)
-- [NbAiLab Whisper (via HuggingFace)](https://huggingface.co/NbAiLab) (f.eks. `NbAiLab/nb-whisper-large`, `NbAiLab/nb-whisper-small`)
+- [NbAiLab Whisper (via HuggingFace)](https://huggingface.co/NbAiLab) (e.g. `NbAiLab/nb-whisper-large`, `NbAiLab/nb-whisper-small`)
 
 ## Quick Usage
 
@@ -44,7 +44,7 @@ docker run -d -p 9000:9000 -e ASR_MODEL=NbAiLab/nb-whisper-large -e ASR_ENGINE=n
 
 ### GPU (NbAiLab Whisper - Default for Norwegian)
 
-Alle støttede modeller, inkludert NbAiLab Whisper-modeller, kan kjøres på GPU dersom du bruker en Docker-image med GPU-støtte og har riktig PyTorch-installasjon.
+All supported models, including NbAiLab Whisper models, can run on GPU if you use a Docker image with GPU support and have the correct PyTorch installation.
 
 ```shell
 docker run -d --gpus all -p 9000:9000 \
@@ -72,7 +72,7 @@ docker run -d -p 9000:9000 \
   sasund/whisper-asr-webservice:latest
 ```
 
-#### GPU med NbAiLab Whisper
+#### GPU with NbAiLab Whisper
 
 ```sh
 docker run -d --gpus all -p 9000:9000 -e ASR_MODEL=NbAiLab/nb-whisper-large -e ASR_ENGINE=nbailab_whisper sasund/whisper-asr-webservice:latest-gpu
@@ -261,8 +261,8 @@ A web-based live transcription player is included with Video.js integration:
 http://localhost:9000/static/live_player.html
 ```
 
-### Audio Player med Live Transcription
-For å spille av lydfiler med live transcription:
+### Audio Player with Live Transcription
+To play audio files with live transcription:
 ```
 http://localhost:9000/static/audio_player.html
 ```

@@ -14,7 +14,7 @@
 === ":octicons-file-code-16: `nbailab_whisper`"
     ```sh
     export ASR_ENGINE=nbailab_whisper
-    export ASR_MODEL=NbAiLab/nb-whisper-large  # eller annen modell fra https://huggingface.co/NbAiLab
+    export ASR_MODEL=NbAiLab/nb-whisper-large  # or other model from https://huggingface.co/NbAiLab
     ```
 
 === ":octicons-file-code-16: `whisperx`"

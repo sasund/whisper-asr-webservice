@@ -6,10 +6,26 @@ on:
     branches:
       - main
       - debug
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'CHANGELOG.md'
+      - 'LICENCE'
+      - 'README.md'
+      - 'TESTPLAN.md'
+      - 'FIX_ENGLISH_TRANSCRIPTION.md'
   pull_request:
     branches:
       - main
     types: [closed]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'CHANGELOG.md'
+      - 'LICENCE'
+      - 'README.md'
+      - 'TESTPLAN.md'
+      - 'FIX_ENGLISH_TRANSCRIPTION.md'
 
 env:
   DOCKER_USER: ${{secrets.DOCKER_USER}}
