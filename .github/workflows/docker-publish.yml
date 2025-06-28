@@ -4,7 +4,12 @@ on:
     tags:        
       - '*'
     branches:
+      - main
       - debug
+  pull_request:
+    branches:
+      - main
+    types: [closed]
 
 env:
   DOCKER_USER: ${{secrets.DOCKER_USER}}
@@ -13,6 +18,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Only run on merged PRs, not on closed PRs that weren't merged
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     strategy:
       matrix:
         include:
