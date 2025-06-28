@@ -8,6 +8,8 @@ import pytest
 from app.asr_models.asr_model import ASRModel
 from app.services.asr_service import ASRService
 
+pytest_plugins = "pytest_asyncio"
+
 
 @pytest.fixture
 def mock_asr_model():
