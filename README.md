@@ -5,7 +5,28 @@
 
 # Whisper ASR Box
 
-Whisper ASR Box is a general-purpose speech recognition toolkit. Whisper Models are trained on a large dataset of diverse audio and is also a multitask model that can perform multilingual speech recognition as well as speech translation and language identification.
+Whisper ASR Box is a comprehensive speech recognition toolkit that supports multiple ASR engines and advanced features. The service offers:
+
+**Core Features:**
+- **Live transcription** via WebSocket for real-time speech recognition
+- **Multiple ASR engines**: OpenAI Whisper, Faster Whisper, WhisperX, and NbAiLab Whisper
+- **Optimized Norwegian support** with NbAiLab models for best quality on Norwegian speech
+- **Multiple output formats**: text, JSON, VTT, SRT, TSV with word-level timestamps
+- **Speaker diarization** with WhisperX to distinguish between different speakers
+- **Voice Activity Detection (VAD)** for noise filtering
+- **GPU acceleration** for faster processing
+- **FFmpeg integration** for broad audio and video format support
+- **REST API** with Swagger documentation
+- **Web-based live player** for real-time transcription in the browser
+
+**Live Transcription:**
+- Real-time transcription via WebSocket
+- Microphone support in the browser
+- Audio file playback with live transcription
+- Language selection (Norwegian, English, Swedish, Danish, etc.)
+- Responsive design for desktop and mobile
+
+Whisper models are trained on large datasets of diverse audio and can perform multilingual speech recognition, speech translation, and language identification.
 
 ## Features
 
